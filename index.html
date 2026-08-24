@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FundTrack — Group Fund Collection</title>
+  <meta name="description" content="Track and manage group fund collection for Iftar, Onam, Nabidinam and community events.">
+  <meta name="theme-color" content="#080b12">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💚</text></svg>">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#080b12] text-white font-sans min-h-screen overflow-x-hidden">
+
+  <!-- ====== TOAST CONTAINER ====== -->
+  <div id="toast" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none max-w-[280px]"></div>
+
+  <!-- ====== MODAL OVERLAY ====== -->
+  <div id="modal-overlay" class="fixed inset-0 bg-black/75 backdrop-blur-md z-[900] hidden items-center justify-center p-4">
+    <div id="modal-box" class="glass-card w-full max-w-md rounded-2xl p-6 relative">
+      <button id="modal-close" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-400 hover:text-white transition-all">
+        <i class="fas fa-times text-sm"></i>
+      </button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- ====== HEADER ====== -->
+  <header id="app-header" class="sticky top-0 z-50 glass-header">
+    <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 flex-shrink-0">
+          <i class="fas fa-hand-holding-heart text-white text-sm"></i>
+        </div>
+        <div>
+          <div class="text-base font-black leading-none tracking-tight">FundTrack</div>
+          <div class="text-[10px] text-gray-500 leading-none mt-0.5 font-medium">Group Fund Collection</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div id="event-selector-btn" class="hidden">
+          <button onclick="App.openEventSwitcher()" class="glass-pill text-xs px-3 py-1.5 flex items-center gap-1.5 max-w-[130px]">
+            <i class="fas fa-layer-group text-emerald-400 text-[10px] flex-shrink-0"></i>
+            <span id="active-event-name" class="font-semibold truncate">Event</span>
+            <i class="fas fa-chevron-down text-gray-500 text-[9px] flex-shrink-0"></i>
+          </button>
+        </div>
+        <button id="admin-btn" onclick="App.toggleAdmin()" class="glass-pill text-xs px-3 py-1.5 flex items-center gap-1.5">
+          <i id="admin-btn-icon" class="fas fa-shield-halved text-emerald-400 text-[10px]"></i>
+          <span id="admin-btn-text" class="font-semibold">Admin</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ====== SHARED VIEW BANNER ====== -->
+  <div id="shared-banner" class="hidden bg-blue-500/10 border-b border-blue-500/20 text-center py-2">
+    <span class="text-xs text-blue-300"><i class="fas fa-share-nodes mr-1.5"></i>Viewing shared snapshot — data may not be live</span>
+  </div>
+
+  <!-- ====== MAIN CONTENT ====== -->
+  <main class="max-w-lg mx-auto px-4 pb-24">
+
+    <!-- ===== PUBLIC VIEW ===== -->
+    <section id="public-view">
+      <div id="event-hero" class="mt-5"></div>
+      <div id="stats-row" class="mt-4 grid grid-cols-3 gap-3"></div>
+      <div id="progress-section" class="mt-4"></div>
+
+      <div class="mt-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Members</h2>
+          <div class="flex gap-1.5">
+            <button id="filter-all"     onclick="App.setFilter('all')"     class="filter-pill active">All</button>
+            <button id="filter-paid"    onclick="App.setFilter('paid')"    class="filter-pill">Paid</button>
+            <button id="filter-pending" onclick="App.setFilter('pending')" class="filter-pill">Pending</button>
+          </div>
+        </div>
+        <div id="member-list" class="flex flex-col gap-2"></div>
+      </div>
+
+      <div id="share-section" class="mt-6 grid grid-cols-2 gap-3">
+        <button onclick="App.shareWhatsApp()" class="btn-secondary flex items-center justify-center gap-2 py-3.5 rounded-xl">
+          <i class="fab fa-whatsapp text-green-400 text-lg"></i>
+          <span class="text-sm font-semibold">WhatsApp</span>
+        </button>
+        <button onclick="App.shareLink()" class="btn-secondary flex items-center justify-center gap-2 py-3.5 rounded-xl">
+          <i class="fas fa-link text-emerald-400 text-base"></i>
+          <span class="text-sm font-semibold">Share Link</span>
+        </button>
+      </div>
+
+      <div id="empty-state" class="hidden py-20 text-center">
+        <div class="w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-5">
+          <i class="fas fa-piggy-bank text-4xl text-emerald-400"></i>
+        </div>
+        <h3 class="text-xl font-black mb-2">No Events Yet</h3>
+        <p class="text-gray-500 text-sm mb-6 leading-relaxed">Login as admin to create your first<br>fund collection event.</p>
+        <button onclick="App.toggleAdmin()" class="btn-primary px-6 py-2.5 text-sm">
+          <i class="fas fa-lock-open mr-2"></i>Go to Admin
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== ADMIN VIEW ===== -->
+    <section id="admin-view" class="hidden">
+
+      <div class="mt-5 flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-black">Admin Panel</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Manage events &amp; members</p>
+        </div>
+        <button onclick="App.logout()" class="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-2 rounded-xl transition-all">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+
+      <div id="admin-stats" class="mt-4"></div>
+
+      <div class="mt-5 glass-card rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-sm flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+              <i class="fas fa-calendar-alt text-emerald-400 text-xs"></i>
+            </span>
+            Fund Events
+          </h3>
+          <button onclick="App.openAddEvent()" class="btn-primary text-xs px-3 py-1.5">
+            <i class="fas fa-plus mr-1"></i> New Event
+          </button>
+        </div>
+        <div id="events-list" class="flex flex-col gap-2"></div>
+      </div>
+
+      <div id="admin-members-section" class="mt-5 hidden">
+        <div class="glass-card rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-sm flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <i class="fas fa-users text-emerald-400 text-xs"></i>
+              </span>
+              Members <span id="admin-members-count" class="text-gray-500 font-normal text-xs"></span>
+            </h3>
+            <div class="flex gap-2">
+              <button onclick="App.openBulkAdd()" class="btn-secondary text-xs px-3 py-1.5">
+                <i class="fas fa-list mr-1"></i> Bulk
+              </button>
+              <button onclick="App.openAddMember()" class="btn-primary text-xs px-3 py-1.5">
+                <i class="fas fa-user-plus mr-1"></i> Add
+              </button>
+            </div>
+          </div>
+          <div id="admin-member-list" class="flex flex-col gap-2"></div>
+        </div>
+      </div>
+
+      <div class="mt-5 glass-card rounded-2xl p-4">
+        <h3 class="font-bold text-sm flex items-center gap-2 mb-4">
+          <span class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+            <i class="fas fa-gear text-emerald-400 text-xs"></i>
+          </span>
+          Settings &amp; Data
+        </h3>
+        <div class="flex flex-col gap-2">
+          <button onclick="App.openChangePassword()" class="settings-row">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-key text-yellow-400 w-4 text-center"></i>
+              <span class="text-sm">Change Admin Password</span>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
+          </button>
+          <button onclick="App.exportData()" class="settings-row">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-download text-blue-400 w-4 text-center"></i>
+              <span class="text-sm">Export Backup (JSON)</span>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
+          </button>
+          <label class="settings-row cursor-pointer">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-upload text-purple-400 w-4 text-center"></i>
+              <span class="text-sm">Import Backup (JSON)</span>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
+            <input type="file" accept=".json" id="import-file" class="hidden" onchange="App.importData(event)">
+          </label>
+          <button onclick="App.openClearData()" class="settings-row">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-trash-alt text-red-400 w-4 text-center"></i>
+              <span class="text-sm text-red-400">Clear All Data</span>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
