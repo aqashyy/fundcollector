@@ -84,6 +84,7 @@ function loadData() {
 const Cloud = {
   db: null,
   isLive: false,
+  _isPushing: false,
 
   getConfig() {
     const custom = AppState?.data?.firebaseConfig;
@@ -107,6 +108,12 @@ const Cloud = {
       this.db = firebase.database();
       this.isLive = true;
       this.updateStatusBadge();
+
+      // Sign in anonymously for write access if Auth is enabled
+      if (firebase.auth && !firebase.auth().currentUser) {
+        firebase.auth().signInAnonymously().catch(e => console.warn('Auth notice:', e?.message || e));
+      }
+
       this.listen();
     } catch (err) {
       console.warn('Firebase init error:', err);
@@ -127,24 +134,24 @@ const Cloud = {
         if (!AppState.data.firebaseConfig) AppState.data.firebaseConfig = currentConfig;
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(AppState.data)); } catch(e){}
         Render.all();
-      } else if (!val && AppState.data.events.length > 0 && AppState.isAdmin) {
-        this.push();
       }
     }, err => {
-      console.warn('Firebase listen error:', err);
+      console.warn('Firebase listen notice:', err?.message || err);
     });
   },
 
   push() {
-    if (this.db && this.isLive) {
-      // Strip sensitive fields (admin password & local firebase config) before syncing to public cloud
+    if (this.db && this.isLive && AppState.isAdmin && !this._isPushing) {
+      this._isPushing = true;
       const payload = {
         version: AppState.data.version || 1,
         activeEventId: AppState.data.activeEventId || null,
         events: AppState.data.events || [],
         members: AppState.data.members || []
       };
-      this.db.ref('fundtrack').set(payload).catch(e => console.warn('Cloud sync push error:', e));
+      this.db.ref('fundtrack').set(payload)
+        .catch(e => console.warn('Cloud sync write permission notice:', e?.message || e))
+        .finally(() => { this._isPushing = false; });
     }
   },
 
