@@ -683,22 +683,26 @@ const Render = {
         <div class="event-item ${isActive ? 'active-event' : ''}">
           <div class="flex items-center gap-3 flex-1 min-w-0" onclick="App.setActiveEvent('${event.id}')">
             <button class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all cursor-pointer
-              ${isActive ? 'border-emerald-400 bg-emerald-400' : 'border-gray-600 hover:border-gray-400'}">
+              ${isActive ? 'border-emerald-400 bg-emerald-400' : 'border-gray-600 hover:border-gray-400'}"
+              title="${isActive ? 'Active event for all visitors' : 'Click to set as default event'}">
               ${isActive ? `<i class="fas fa-check text-[8px] text-white"></i>` : ''}
             </button>
             <div class="min-w-0 cursor-pointer">
-              <div class="font-semibold text-sm truncate">${escHtml(event.name)}</div>
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-sm truncate">${escHtml(event.name)}</span>
+                ${isActive ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0">Default ⭐</span>` : ''}
+              </div>
               <div class="text-[11px] text-gray-500 mt-0.5">
                 ${stats.paid}/${stats.total} paid · ${formatCurrency(stats.totalCollected)}
               </div>
             </div>
           </div>
           <div class="flex gap-1.5 flex-shrink-0">
-            <button onclick="App.openEditEvent('${event.id}')"
+            <button onclick="App.openEditEvent('${event.id}')" title="Edit Event"
               class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/12 flex items-center justify-center transition-colors">
               <i class="fas fa-pen text-[10px] text-gray-400"></i>
             </button>
-            <button onclick="App.deleteEvent('${event.id}')"
+            <button onclick="App.deleteEvent('${event.id}')" title="Delete Event"
               class="w-8 h-8 rounded-lg bg-red-500/8 hover:bg-red-500/20 flex items-center justify-center transition-colors">
               <i class="fas fa-trash text-[10px] text-red-400"></i>
             </button>
@@ -1022,6 +1026,8 @@ const App = {
   setActiveEvent(id) {
     Data.setActiveEvent(id);
     Render.all();
+    const ev = Data.getEvent(id);
+    toast(`"${ev?.name || 'Event'}" set as default for all visitors! ⭐`, 'success');
   },
 
   // ---- Filter ----
