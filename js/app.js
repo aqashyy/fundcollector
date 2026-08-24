@@ -394,11 +394,16 @@ const Render = {
       const query   = `pa=${encodeURIComponent(upiPa)}&pn=${upiName}&am=${upiAmt}&cu=INR&tn=${upiNote}`;
       const upiLink = upiPa ? `upi://pay?${query}` : '';
 
-      // App-specific deep links (exact payment intent paths)
+      // App-specific deep links (exact payment intent paths with iOS/Android compatibility)
+      const isAndroid      = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent || '');
       const gpayLink       = upiPa ? `gpay://upi/pay?${query}` : '';
       const phonepeLink    = upiPa ? `phonepe://pay?${query}` : '';
       const paytmLink      = upiPa ? `paytmmp://pay?${query}` : '';
-      const supermoneyLink = upiPa ? `intent://pay?${query}#Intent;scheme=upi;package=com.supermoney.app;end` : '';
+      const supermoneyLink = upiPa
+        ? (isAndroid
+            ? `intent://pay?${query}#Intent;scheme=upi;package=com.supermoney.app;end`
+            : `supermoney://pay?${query}`)
+        : '';
 
       const payCard = `
         <div class="glass-card rounded-2xl p-4 mt-4">
@@ -845,11 +850,14 @@ const App = {
     }
 
     const query = `pa=${encodeURIComponent(upiPa)}&pn=${upiName}${hasAmt ? `&am=${num}` : ''}&cu=INR&tn=${upiNote}`;
+    const isAndroid      = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent || '');
     const upiLink        = `upi://pay?${query}`;
     const gpayLink       = `gpay://upi/pay?${query}`;
     const phonepeLink    = `phonepe://pay?${query}`;
     const paytmLink      = `paytmmp://pay?${query}`;
-    const supermoneyLink = `intent://pay?${query}#Intent;scheme=upi;package=com.supermoney.app;end`;
+    const supermoneyLink = isAndroid
+      ? `intent://pay?${query}#Intent;scheme=upi;package=com.supermoney.app;end`
+      : `supermoney://pay?${query}`;
 
     $('#btn-pay-now').attr('href', upiLink);
     $('#btn-pay-now-text').text(buttonText);
