@@ -1078,9 +1078,24 @@ const App = {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-      App._pendingQR = e.target.result;
-      $(`#${previewId}`).attr('src', e.target.result).removeClass('hidden');
-      $(`#${labelId}`).text('QR Code selected ✅');
+      const img = new Image();
+      img.onload = () => {
+        // Compress to max 400x400 JPEG for ultra-fast cloud sync (~25KB)
+        const canvas = document.createElement('canvas');
+        const maxDim = 400;
+        let w = img.width, h = img.height;
+        if (w > h && w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; }
+        else if (h > maxDim) { w = Math.round((w * maxDim) / h); h = maxDim; }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+        App._pendingQR = compressedBase64;
+        $(`#${previewId}`).attr('src', compressedBase64).removeClass('hidden');
+        $(`#${labelId}`).text('QR Code selected ✅');
+      };
+      img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   },
