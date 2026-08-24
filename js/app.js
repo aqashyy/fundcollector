@@ -439,28 +439,56 @@ const Render = {
           </div>
 
           ${upiLink ? `
+          <!-- Amount Input & Quick Chips -->
+          <div class="pt-2 pb-3 border-t border-white/8">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-[11px] font-semibold text-gray-400">Contribution Amount</label>
+              <span class="text-[10px] text-emerald-400 font-medium">Editable / Any Amount</span>
+            </div>
+
+            <div class="relative mb-2.5">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₹</span>
+              <input type="number" id="pay-amount-input"
+                class="form-input pl-8 pr-3 py-2 text-sm font-bold text-emerald-300 w-full"
+                value="${upiAmt}" min="1" placeholder="Enter custom amount (or leave blank)"
+                oninput="App.updatePayAmount(this.value)">
+            </div>
+
+            <!-- Quick Chips -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button type="button" class="amount-chip active-chip" data-amount="${upiAmt}" onclick="App.updatePayAmount(${upiAmt})">
+                ₹${upiAmt}
+              </button>
+              ${upiAmt !== 300 ? `<button type="button" class="amount-chip" data-amount="300" onclick="App.updatePayAmount(300)">₹300</button>` : ''}
+              ${upiAmt !== 500 ? `<button type="button" class="amount-chip" data-amount="500" onclick="App.updatePayAmount(500)">₹500</button>` : ''}
+              <button type="button" class="amount-chip" data-amount="1000" onclick="App.updatePayAmount(1000)">₹1,000</button>
+              <button type="button" class="amount-chip" data-amount="0" onclick="App.updatePayAmount(0)" title="Enter any amount freely in your UPI app">
+                Any Amount ✍️
+              </button>
+            </div>
+          </div>
+
           <!-- Big Pay Now Button -->
-          <a href="${upiLink}" class="pay-now-btn flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl mb-3">
+          <a href="${upiLink}" id="btn-pay-now" class="pay-now-btn flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl mb-3">
             <i class="fas fa-bolt text-lg"></i>
-            <span class="font-black text-base">Pay ${formatCurrency(upiAmt)}</span>
-            <span class="text-sm font-medium opacity-80">Now</span>
+            <span id="btn-pay-now-text" class="font-black text-base">Pay ${formatCurrency(upiAmt)} Now</span>
           </a>
 
           <!-- App Shortcuts (2x2 grid) -->
           <div class="grid grid-cols-2 gap-2">
-            <a href="${gpayLink}" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
+            <a href="${gpayLink}" id="btn-app-gpay" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
               <img src="img/gpay.svg" width="28" height="28" alt="Google Pay" class="rounded-lg">
               <span class="text-[12px] font-semibold text-gray-200">GPay</span>
             </a>
-            <a href="${phonepeLink}" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
+            <a href="${phonepeLink}" id="btn-app-phonepe" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
               <img src="img/phonepe.svg" width="28" height="28" alt="PhonePe" class="rounded-lg">
               <span class="text-[12px] font-semibold text-gray-200">PhonePe</span>
             </a>
-            <a href="${paytmLink}" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
+            <a href="${paytmLink}" id="btn-app-paytm" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
               <img src="img/paytm.svg" width="28" height="28" alt="Paytm" class="rounded-lg">
               <span class="text-[12px] font-semibold text-gray-200">Paytm</span>
             </a>
-            <a href="${supermoneyLink}" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
+            <a href="${supermoneyLink}" id="btn-app-supermoney" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
               <img src="img/supermoney.svg" width="28" height="28" alt="SuperMoney" class="rounded-lg">
               <span class="text-[12px] font-semibold text-gray-200">SuperMoney</span>
             </a>
@@ -796,6 +824,51 @@ const App = {
     $('#admin-btn').hide();
     Render.publicView();
     Render.header();
+  },
+
+  // ---- Dynamic UPI Amount ----
+  updatePayAmount(val) {
+    const event = Data.getActiveEvent();
+    if (!event) return;
+    const upiPa = event.upiId || (event.upiNumber ? event.upiNumber + '@upi' : '');
+    if (!upiPa) return;
+    const upiName = encodeURIComponent(event.upiName || 'Fund Collection');
+    const upiNote = encodeURIComponent(event.name);
+
+    const num = parseInt(val);
+    let upiLink;
+    let buttonText;
+
+    if (isNaN(num) || num <= 0) {
+      // Open / Any Amount mode (no am= parameter)
+      upiLink = `upi://pay?pa=${encodeURIComponent(upiPa)}&pn=${upiName}&cu=INR&tn=${upiNote}`;
+      buttonText = 'Pay Any Amount Now ✍️';
+      $('#pay-amount-input').val('');
+    } else {
+      upiLink = `upi://pay?pa=${encodeURIComponent(upiPa)}&pn=${upiName}&am=${num}&cu=INR&tn=${upiNote}`;
+      buttonText = `Pay ${formatCurrency(num)} Now`;
+      $('#pay-amount-input').val(num);
+    }
+
+    const gpayLink       = upiLink.replace('upi://', 'tez://');
+    const phonepeLink    = upiLink.replace('upi://', 'phonepe://');
+    const paytmLink      = upiLink.replace('upi://', 'paytmmp://');
+    const supermoneyLink = upiLink.replace('upi://', 'supermoney://');
+
+    $('#btn-pay-now').attr('href', upiLink);
+    $('#btn-pay-now-text').text(buttonText);
+    $('#btn-app-gpay').attr('href', gpayLink);
+    $('#btn-app-phonepe').attr('href', phonepeLink);
+    $('#btn-app-paytm').attr('href', paytmLink);
+    $('#btn-app-supermoney').attr('href', supermoneyLink);
+
+    // Update active chip highlight
+    $('.amount-chip').removeClass('active-chip');
+    if (isNaN(num) || num <= 0) {
+      $('.amount-chip[data-amount="0"]').addClass('active-chip');
+    } else {
+      $(`.amount-chip[data-amount="${num}"]`).addClass('active-chip');
+    }
   },
 
   // ---- Auth ----
