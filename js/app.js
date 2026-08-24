@@ -391,15 +391,14 @@ const Render = {
       const upiName = encodeURIComponent(event.upiName || 'Fund Collection');
       const upiAmt  = event.defaultAmount || 250;
       const upiNote = encodeURIComponent(event.name);
-      const upiLink = upiPa
-        ? `upi://pay?pa=${encodeURIComponent(upiPa)}&pn=${upiName}&am=${upiAmt}&cu=INR&tn=${upiNote}`
-        : '';
+      const query   = `pa=${encodeURIComponent(upiPa)}&pn=${upiName}&am=${upiAmt}&cu=INR&tn=${upiNote}`;
+      const upiLink = upiPa ? `upi://pay?${query}` : '';
 
-      // App-specific deep links
-      const gpayLink       = upiLink.replace('upi://', 'tez://');
-      const phonepeLink    = upiLink.replace('upi://', 'phonepe://');
-      const paytmLink      = upiLink.replace('upi://', 'paytmmp://');
-      const supermoneyLink = upiLink.replace('upi://', 'supermoney://');
+      // App-specific deep links (exact payment intent paths)
+      const gpayLink       = upiPa ? `gpay://upi/pay?${query}` : '';
+      const phonepeLink    = upiPa ? `phonepe://pay?${query}` : '';
+      const paytmLink      = upiPa ? `paytmmp://pay?${query}` : '';
+      const supermoneyLink = upiPa ? `supermoney://upi/pay?${query}` : '';
 
       const payCard = `
         <div class="glass-card rounded-2xl p-4 mt-4">
@@ -836,24 +835,21 @@ const App = {
     const upiNote = encodeURIComponent(event.name);
 
     const num = parseInt(val);
-    let upiLink;
-    let buttonText;
+    const hasAmt = !isNaN(num) && num > 0;
+    const buttonText = hasAmt ? `Pay ${formatCurrency(num)} Now` : 'Pay Any Amount Now ✍️';
 
-    if (isNaN(num) || num <= 0) {
-      // Open / Any Amount mode (no am= parameter)
-      upiLink = `upi://pay?pa=${encodeURIComponent(upiPa)}&pn=${upiName}&cu=INR&tn=${upiNote}`;
-      buttonText = 'Pay Any Amount Now ✍️';
+    if (!hasAmt) {
       $('#pay-amount-input').val('');
     } else {
-      upiLink = `upi://pay?pa=${encodeURIComponent(upiPa)}&pn=${upiName}&am=${num}&cu=INR&tn=${upiNote}`;
-      buttonText = `Pay ${formatCurrency(num)} Now`;
       $('#pay-amount-input').val(num);
     }
 
-    const gpayLink       = upiLink.replace('upi://', 'tez://');
-    const phonepeLink    = upiLink.replace('upi://', 'phonepe://');
-    const paytmLink      = upiLink.replace('upi://', 'paytmmp://');
-    const supermoneyLink = upiLink.replace('upi://', 'supermoney://');
+    const query = `pa=${encodeURIComponent(upiPa)}&pn=${upiName}${hasAmt ? `&am=${num}` : ''}&cu=INR&tn=${upiNote}`;
+    const upiLink        = `upi://pay?${query}`;
+    const gpayLink       = `gpay://upi/pay?${query}`;
+    const phonepeLink    = `phonepe://pay?${query}`;
+    const paytmLink      = `paytmmp://pay?${query}`;
+    const supermoneyLink = `supermoney://upi/pay?${query}`;
 
     $('#btn-pay-now').attr('href', upiLink);
     $('#btn-pay-now-text').text(buttonText);
