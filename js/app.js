@@ -856,8 +856,8 @@ const App = {
     const pw = $('#login-pw').val();
     if (pw === AppState.data.adminPassword) {
       AppState.isAdmin = true;
-      if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().signInAnonymously().catch(e => console.warn('Auth error', e));
+      if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+        try { firebase.auth().signInAnonymously().catch(e => console.warn('Auth error', e)); } catch(e){}
       }
       Modal.close();
       toast('Welcome, Admin! 👋', 'success');
@@ -871,8 +871,12 @@ const App = {
 
   logout() {
     AppState.isAdmin = false;
-    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
-      firebase.auth().signOut().catch(e => console.warn('Signout error', e));
+    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+      try {
+        if (firebase.auth().currentUser) {
+          firebase.auth().signOut().catch(e => console.warn('Signout error', e));
+        }
+      } catch(e){}
     }
     toast('Logged out', 'info');
     Render.all();
