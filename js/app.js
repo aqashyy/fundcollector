@@ -401,8 +401,8 @@ const Render = {
       const paytmLink      = upiPa ? `paytmmp://pay?${query}` : '';
       const supermoneyLink = upiPa
         ? (isAndroid
-            ? `intent://pay?${query}#Intent;scheme=upi;package=com.supermoney.app;end`
-            : `supermoney://pay?${query}`)
+            ? `intent://pay?${query}#Intent;scheme=upi;package=money.super.payments;end`
+            : `upi://pay?${query}`)
         : '';
 
       const payCard = `
@@ -856,8 +856,8 @@ const App = {
     const phonepeLink    = `phonepe://pay?${query}`;
     const paytmLink      = `paytmmp://pay?${query}`;
     const supermoneyLink = isAndroid
-      ? `intent://pay?${query}#Intent;scheme=upi;package=com.supermoney.app;end`
-      : `supermoney://pay?${query}`;
+      ? `intent://pay?${query}#Intent;scheme=upi;package=money.super.payments;end`
+      : `upi://pay?${query}`;
 
     $('#btn-pay-now').attr('href', upiLink);
     $('#btn-pay-now-text').text(buttonText);
