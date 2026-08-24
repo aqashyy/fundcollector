@@ -795,6 +795,8 @@ const App = {
       } catch (e) {
         console.warn('Invalid share data in URL');
       }
+    }
+
     // Seed data if first run
     seedData();
 
