@@ -1694,7 +1694,11 @@ const App = {
     text += ` | ✅ ${stats.paid}/${stats.total} paid`;
     if (stats.pending > 0) text += ` | ⏳ ${stats.pending} pending`;
 
-    this._copyText(text, 'WhatsApp text copied! 📋');
+    // Append clean live link for real-time tracking
+    const liveUrl = window.location.href.split('#')[0].replace(/\/index\.html$/, '/');
+    text += `\n\n📊 *Live Status & Leaderboard:*\n${liveUrl}`;
+
+    this._copyText(text, 'WhatsApp text copied with live link! 📋');
   },
 
   shareLink() {
