@@ -219,22 +219,25 @@ body {
 
 /* ---- Leaderboard Card Highlights ---- */
 .rank-1-card {
-  border-color: rgba(250,204,21,0.35) !important;
-  background: linear-gradient(135deg, rgba(250,204,21,0.08) 0%, rgba(255,255,255,0.04) 100%) !important;
-  animation: gold-pulse 3s ease-in-out infinite;
+  border-color: rgba(250,204,21,0.4) !important;
+  border-left: 3px solid #facc15 !important;
+  background: linear-gradient(135deg, rgba(250,204,21,0.12) 0%, rgba(255,255,255,0.04) 100%) !important;
+  animation: fadeInUp 0.35s ease forwards, gold-pulse 3s ease-in-out infinite 0.35s !important;
 }
 .rank-2-card {
-  border-color: rgba(203,213,225,0.25) !important;
-  background: linear-gradient(135deg, rgba(203,213,225,0.05) 0%, rgba(255,255,255,0.03) 100%) !important;
+  border-color: rgba(203,213,225,0.3) !important;
+  border-left: 3px solid #cbd5e1 !important;
+  background: linear-gradient(135deg, rgba(203,213,225,0.08) 0%, rgba(255,255,255,0.03) 100%) !important;
 }
 .rank-3-card {
-  border-color: rgba(234,88,12,0.25) !important;
-  background: linear-gradient(135deg, rgba(234,88,12,0.06) 0%, rgba(255,255,255,0.03) 100%) !important;
+  border-color: rgba(234,88,12,0.3) !important;
+  border-left: 3px solid #ea580c !important;
+  background: linear-gradient(135deg, rgba(234,88,12,0.08) 0%, rgba(255,255,255,0.03) 100%) !important;
 }
 
 @keyframes gold-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(250,204,21,0); }
-  50%       { box-shadow: 0 0 12px 2px rgba(250,204,21,0.18); }
+  0%, 100% { box-shadow: 0 0 8px rgba(250,204,21,0.15); }
+  50%       { box-shadow: 0 0 18px 3px rgba(250,204,21,0.35); }
 }
 
 /* ---- Admin Member Rows ---- */
@@ -490,21 +493,6 @@ body {
   padding: 20px;
   color: #374151;
   font-size: 13px;
-}
-
-.serial-badge {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 700;
-  color: #6b7280;
 }
 
 /* Hero card decoration */

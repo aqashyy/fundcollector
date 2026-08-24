@@ -46,16 +46,28 @@ function toast(message, type = 'info', duration = 3000) {
 }
 
 // ============================================================
-// STORAGE
+// STORAGE & CLOUD SYNC
 // ============================================================
 
 const STORAGE_KEY = 'fundtrack_v1';
+
+// You can fill this directly OR configure via Admin -> Settings -> Cloud Sync
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
 
 function defaultData() {
   return {
     version: 1,
     adminPassword: 'admin123',
     activeEventId: null,
+    firebaseConfig: null,
     events: [],
     members: []
   };
@@ -69,12 +81,91 @@ function loadData() {
   return defaultData();
 }
 
+const Cloud = {
+  db: null,
+  isLive: false,
+
+  getConfig() {
+    const custom = AppState?.data?.firebaseConfig;
+    if (custom && custom.databaseURL) return custom;
+    if (DEFAULT_FIREBASE_CONFIG.databaseURL) return DEFAULT_FIREBASE_CONFIG;
+    return null;
+  },
+
+  init() {
+    const config = this.getConfig();
+    if (!config || !config.databaseURL || typeof firebase === 'undefined') {
+      this.isLive = false;
+      this.updateStatusBadge();
+      return;
+    }
+
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(config);
+      }
+      this.db = firebase.database();
+      this.isLive = true;
+      this.updateStatusBadge();
+      this.listen();
+    } catch (err) {
+      console.warn('Firebase init error:', err);
+      this.isLive = false;
+      this.updateStatusBadge();
+    }
+  },
+
+  listen() {
+    if (!this.db || !this.isLive) return;
+    this.db.ref('fundtrack').on('value', snapshot => {
+      const val = snapshot.val();
+      if (val && val.events) {
+        const currentPassword = AppState.data.adminPassword;
+        const currentConfig = AppState.data.firebaseConfig;
+        AppState.data = { ...defaultData(), ...val };
+        if (!AppState.data.adminPassword) AppState.data.adminPassword = currentPassword;
+        if (!AppState.data.firebaseConfig) AppState.data.firebaseConfig = currentConfig;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(AppState.data)); } catch(e){}
+        Render.all();
+      } else if (!val && AppState.data.events.length > 0 && AppState.isAdmin) {
+        this.push();
+      }
+    }, err => {
+      console.warn('Firebase listen error:', err);
+    });
+  },
+
+  push() {
+    if (this.db && this.isLive) {
+      // Strip sensitive fields (admin password & local firebase config) before syncing to public cloud
+      const payload = {
+        version: AppState.data.version || 1,
+        activeEventId: AppState.data.activeEventId || null,
+        events: AppState.data.events || [],
+        members: AppState.data.members || []
+      };
+      this.db.ref('fundtrack').set(payload).catch(e => console.warn('Cloud sync push error:', e));
+    }
+  },
+
+  updateStatusBadge() {
+    const $badge = $('#cloud-status-badge');
+    if (!$badge.length) return;
+    if (this.isLive) {
+      $badge.removeClass('text-gray-500 text-red-400').addClass('text-emerald-400').html('🟢 Live Connected');
+    } else {
+      $badge.removeClass('text-emerald-400 text-red-400').addClass('text-gray-500').html('⚪ Offline (Local)');
+    }
+  }
+};
+
 function saveData() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(AppState.data));
   } catch (e) {
     toast('Storage error — data may not be saved', 'error');
   }
+  Cloud.push();
 }
 
 // ============================================================
@@ -540,6 +631,7 @@ const Render = {
     this.adminStats();
     this.eventsList();
     this.adminMemberList();
+    Cloud.updateStatusBadge();
   },
 
   adminStats() {
@@ -703,10 +795,11 @@ const App = {
       } catch (e) {
         console.warn('Invalid share data in URL');
       }
-    }
-
     // Seed data if first run
     seedData();
+
+    // Initialize Cloud Sync (Firebase)
+    Cloud.init();
 
     // Render
     Render.all();
@@ -746,7 +839,7 @@ const App = {
         <div>
           <label class="form-label">Password</label>
           <input type="password" id="login-pw" class="form-input"
-            placeholder="Enter password…" autocomplete="current-password" value="admin123">
+            placeholder="Enter password…" autocomplete="current-password">
         </div>
         <button onclick="App.login()" class="btn-primary w-full py-3 text-sm">
           <i class="fas fa-unlock-alt mr-2"></i> Login
@@ -761,6 +854,9 @@ const App = {
     const pw = $('#login-pw').val();
     if (pw === AppState.data.adminPassword) {
       AppState.isAdmin = true;
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().signInAnonymously().catch(e => console.warn('Auth error', e));
+      }
       Modal.close();
       toast('Welcome, Admin! 👋', 'success');
       Render.all();
@@ -773,6 +869,9 @@ const App = {
 
   logout() {
     AppState.isAdmin = false;
+    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+      firebase.auth().signOut().catch(e => console.warn('Signout error', e));
+    }
     toast('Logged out', 'info');
     Render.all();
   },
@@ -1436,6 +1535,82 @@ const App = {
     Modal.close();
     toast('All data cleared', 'warning');
     Render.all();
+  },
+
+  // ---- Cloud Sync (Firebase) ----
+  openCloudSync() {
+    const cfg = Cloud.getConfig() || {};
+    Modal.open(`
+      <h3 class="text-lg font-black mb-1">
+        <i class="fas fa-cloud text-emerald-400 mr-2"></i>Firebase Cloud Sync
+      </h3>
+      <p class="text-gray-400 text-xs mb-4">Connect Firebase Realtime Database for instant live updates across all devices.</p>
+      <div class="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+        <div>
+          <label class="form-label">Database URL *</label>
+          <input type="text" id="fb-db-url" class="form-input text-xs font-mono"
+            placeholder="https://your-project-default-rtdb.firebaseio.com"
+            value="${escHtml(cfg.databaseURL || '')}">
+        </div>
+        <div>
+          <label class="form-label">API Key *</label>
+          <input type="text" id="fb-api-key" class="form-input text-xs font-mono"
+            placeholder="AIzaSy..."
+            value="${escHtml(cfg.apiKey || '')}">
+        </div>
+        <div>
+          <label class="form-label">Project ID *</label>
+          <input type="text" id="fb-project-id" class="form-input text-xs font-mono"
+            placeholder="your-project-id"
+            value="${escHtml(cfg.projectId || '')}">
+        </div>
+        <div class="pt-2 flex gap-2">
+          <button onclick="App.saveCloudSync()" class="btn-primary flex-1 py-3 text-sm">
+            <i class="fas fa-save mr-2"></i>Save & Connect
+          </button>
+          ${cfg.databaseURL ? `
+            <button onclick="App.disconnectCloudSync()" class="btn-secondary py-3 px-4 text-sm text-red-400">
+              Disconnect
+            </button>
+          ` : ''}
+        </div>
+        <div class="bg-white/5 rounded-xl p-3 text-[11px] text-gray-400 mt-3 space-y-1">
+          <div class="font-bold text-gray-200">How to get this free (2 mins):</div>
+          <div>1. Go to <a href="https://console.firebase.google.com" target="_blank" class="text-emerald-400 underline font-semibold">console.firebase.google.com</a></div>
+          <div>2. Create project &rarr; Build &rarr; <strong>Realtime Database</strong></div>
+          <div>3. Choose <strong>Test mode</strong> (read/write enabled)</div>
+          <div>4. Project Settings &rarr; Your Apps (Web) &rarr; copy config keys here</div>
+        </div>
+      </div>
+    `);
+  },
+
+  saveCloudSync() {
+    const databaseURL = $('#fb-db-url').val().trim();
+    const apiKey = $('#fb-api-key').val().trim();
+    const projectId = $('#fb-project-id').val().trim();
+
+    if (!databaseURL) {
+      toast('Database URL is required', 'error');
+      return;
+    }
+
+    const config = { databaseURL, apiKey, projectId };
+    AppState.data.firebaseConfig = config;
+    saveData();
+    Cloud.init();
+    Modal.close();
+    toast('Cloud Sync Connected! 🚀', 'success');
+    Cloud.push();
+  },
+
+  disconnectCloudSync() {
+    AppState.data.firebaseConfig = null;
+    saveData();
+    Cloud.isLive = false;
+    Cloud.updateStatusBadge();
+    Modal.close();
+    toast('Cloud Sync disconnected', 'info');
   },
 
   // ---- Share ----
