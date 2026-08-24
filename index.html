@@ -193,13 +193,6 @@
             </div>
             <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
           </button>
-          <button onclick="App.openCloudSync()" class="settings-row">
-            <div class="flex items-center gap-3">
-              <i class="fas fa-cloud text-emerald-400 w-4 text-center"></i>
-              <span class="text-sm">Cloud Sync (Firebase)</span>
-            </div>
-            <span id="cloud-status-badge" class="text-[10px] text-gray-500 font-semibold">Offline</span>
-          </button>
           <button onclick="App.exportData()" class="settings-row">
             <div class="flex items-center gap-3">
               <i class="fas fa-download text-blue-400 w-4 text-center"></i>
@@ -228,6 +221,7 @@
 
   </main>
 
+  <script src="js/firebase-config.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
