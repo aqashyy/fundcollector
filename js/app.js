@@ -398,7 +398,7 @@ const Render = {
       const gpayLink       = upiPa ? `gpay://upi/pay?${query}` : '';
       const phonepeLink    = upiPa ? `phonepe://pay?${query}` : '';
       const paytmLink      = upiPa ? `paytmmp://pay?${query}` : '';
-      const supermoneyLink = upiPa ? `supermoney://upi/pay?${query}` : '';
+      const supermoneyLink = upiPa ? `intent://pay?${query}#Intent;scheme=upi;package=com.supermoney.app;end` : '';
 
       const payCard = `
         <div class="glass-card rounded-2xl p-4 mt-4">
@@ -849,7 +849,7 @@ const App = {
     const gpayLink       = `gpay://upi/pay?${query}`;
     const phonepeLink    = `phonepe://pay?${query}`;
     const paytmLink      = `paytmmp://pay?${query}`;
-    const supermoneyLink = `supermoney://upi/pay?${query}`;
+    const supermoneyLink = `intent://pay?${query}#Intent;scheme=upi;package=com.supermoney.app;end`;
 
     $('#btn-pay-now').attr('href', upiLink);
     $('#btn-pay-now-text').text(buttonText);
