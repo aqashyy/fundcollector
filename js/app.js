@@ -50,11 +50,22 @@ function toast(message, type = 'info', duration = 3000) {
 // ============================================================
 
 const STORAGE_KEY = 'fundtrack_v1';
+const ADMIN_SESSION_KEY = 'fundtrack_admin_logged_in';
+// Default salted SHA-256 hash for initial 'admin123' password
+const DEFAULT_PW_HASH = '944efc6e1b1d8cae97a7e85f60e86591476143e49685ef3057022d3e600df06d';
+
+async function sha256(message) {
+  if (!message) return '';
+  const msgBuffer = new TextEncoder().encode(message + '_fundtrack_salt_2026');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 function defaultData() {
   return {
     version: 1,
-    adminPassword: 'admin123',
+    adminPasswordHash: DEFAULT_PW_HASH,
     activeEventId: null,
     events: [],
     members: []
@@ -112,9 +123,9 @@ const Cloud = {
     this.db.ref('fundtrack').on('value', snapshot => {
       const val = snapshot.val();
       if (val && val.events) {
-        const currentPassword = AppState.data.adminPassword;
+        const currentPasswordHash = AppState.data.adminPasswordHash;
         AppState.data = { ...defaultData(), ...val };
-        if (!AppState.data.adminPassword) AppState.data.adminPassword = currentPassword;
+        if (currentPasswordHash) AppState.data.adminPasswordHash = currentPasswordHash;
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(AppState.data)); } catch(e){}
         Render.all();
       }
@@ -154,7 +165,7 @@ function saveData() {
 
 const AppState = {
   data: loadData(),
-  isAdmin: false,
+  isAdmin: localStorage.getItem(ADMIN_SESSION_KEY) === '1',
   currentFilter: 'all',
   isSharedView: false,
   get currentEventId() { return this.data.activeEventId; },
@@ -926,13 +937,22 @@ const App = {
     $('#login-pw').on('keypress', e => { if (e.key === 'Enter') App.login(); });
   },
 
-  login() {
+  async login() {
     const pw = $('#login-pw').val();
-    if (pw === AppState.data.adminPassword) {
+    if (!pw) return;
+
+    const inputHash = await sha256(pw);
+    const expectedHash = AppState.data.adminPasswordHash || DEFAULT_PW_HASH;
+    const isMatch = (inputHash === expectedHash) || (AppState.data.adminPassword && pw === AppState.data.adminPassword);
+
+    if (isMatch) {
       AppState.isAdmin = true;
+      localStorage.setItem(ADMIN_SESSION_KEY, '1');
+
       if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
         try { firebase.auth().signInAnonymously().catch(e => console.warn('Auth error', e)); } catch(e){}
       }
+
       Modal.close();
       toast('Welcome, Admin! 👋', 'success');
       Render.all();
@@ -945,6 +965,8 @@ const App = {
 
   logout() {
     AppState.isAdmin = false;
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+
     if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
       try {
         if (firebase.auth().currentUser) {
@@ -952,6 +974,7 @@ const App = {
         }
       } catch(e){}
     }
+
     toast('Logged out', 'info');
     Render.all();
   },
@@ -1557,17 +1580,24 @@ const App = {
     setTimeout(() => $('#pw-old').focus(), 150);
   },
 
-  changePassword() {
+  async changePassword() {
     const old = $('#pw-old').val();
     const nw = $('#pw-new').val();
     const conf = $('#pw-confirm').val();
-    if (old !== AppState.data.adminPassword) { toast('Wrong current password', 'error'); return; }
+
+    const oldHash = await sha256(old);
+    const expectedHash = AppState.data.adminPasswordHash || DEFAULT_PW_HASH;
+    const isOldMatch = (oldHash === expectedHash) || (AppState.data.adminPassword && old === AppState.data.adminPassword);
+
+    if (!isOldMatch) { toast('Wrong current password', 'error'); return; }
     if (!nw || nw.length < 4) { toast('New password must be ≥ 4 characters', 'error'); return; }
     if (nw !== conf) { toast('Passwords do not match', 'error'); return; }
-    AppState.data.adminPassword = nw;
+
+    AppState.data.adminPasswordHash = await sha256(nw);
+    delete AppState.data.adminPassword; // Remove any legacy plaintext
     saveData();
     Modal.close();
-    toast('Password updated! 🔐', 'success');
+    toast('Password updated securely! 🔐', 'success');
   },
 
   exportData() {
