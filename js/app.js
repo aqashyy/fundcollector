@@ -466,29 +466,14 @@ const Render = {
             </div>
           </div>
 
-          <!-- Big Pay Now Button -->
-          <a href="${upiLink}" id="btn-pay-now" class="pay-now-btn flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl mb-3">
+          <!-- Big Pay Button (Opens App Chooser) -->
+          <button type="button" onclick="App.openPayModal()" class="pay-now-btn flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl">
             <i class="fas fa-bolt text-lg"></i>
             <span id="btn-pay-now-text" class="font-black text-base">Pay ${formatCurrency(upiAmt)} Now</span>
-          </a>
-
-          <!-- App Shortcuts (3-column layout) -->
-          <div class="grid grid-cols-3 gap-2">
-            <a href="${gpayLink}" id="btn-app-gpay" class="upi-app-btn flex flex-col items-center gap-1.5 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all text-center">
-              <img src="img/gpay.svg" width="28" height="28" alt="Google Pay" class="rounded-lg">
-              <span class="text-[11px] font-semibold text-gray-200">GPay</span>
-            </a>
-            <a href="${phonepeLink}" id="btn-app-phonepe" class="upi-app-btn flex flex-col items-center gap-1.5 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all text-center">
-              <img src="img/phonepe.svg" width="28" height="28" alt="PhonePe" class="rounded-lg">
-              <span class="text-[11px] font-semibold text-gray-200">PhonePe</span>
-            </a>
-            <a href="${paytmLink}" id="btn-app-paytm" class="upi-app-btn flex flex-col items-center gap-1.5 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all text-center">
-              <img src="img/paytm.svg" width="28" height="28" alt="Paytm" class="rounded-lg">
-              <span class="text-[11px] font-semibold text-gray-200">Paytm</span>
-            </a>
-          </div>
-          <p class="text-[10px] text-gray-600 text-center mt-2.5">
-            <i class="fas fa-mobile-screen mr-1"></i>Tap to open payment app on your phone
+          </button>
+          <p class="text-[10px] text-gray-500 text-center mt-2.5 flex items-center justify-center gap-1.5">
+            <i class="fas fa-shield-alt text-emerald-400"></i>
+            Choose GPay, PhonePe, Paytm, or WhatsApp Pay
           </p>
           ` : ''}
         </div>
@@ -822,13 +807,6 @@ const App = {
 
   // ---- Dynamic UPI Amount ----
   updatePayAmount(val) {
-    const event = Data.getActiveEvent();
-    if (!event) return;
-    const upiPa = event.upiId || (event.upiNumber ? event.upiNumber + '@upi' : '');
-    if (!upiPa) return;
-    const upiName = encodeURIComponent(event.upiName || 'Fund Collection');
-    const upiNote = encodeURIComponent(event.name);
-
     const num = parseInt(val);
     const hasAmt = !isNaN(num) && num > 0;
     const buttonText = hasAmt ? `Pay ${formatCurrency(num)} Now` : 'Pay Any Amount Now ✍️';
@@ -839,25 +817,80 @@ const App = {
       $('#pay-amount-input').val(num);
     }
 
-    const query = `pa=${encodeURIComponent(upiPa)}&pn=${upiName}${hasAmt ? `&am=${num}` : ''}&cu=INR&tn=${upiNote}`;
-    const upiLink     = `upi://pay?${query}`;
-    const gpayLink    = `gpay://upi/pay?${query}`;
-    const phonepeLink = `phonepe://pay?${query}`;
-    const paytmLink   = `paytmmp://pay?${query}`;
-
-    $('#btn-pay-now').attr('href', upiLink);
     $('#btn-pay-now-text').text(buttonText);
-    $('#btn-app-gpay').attr('href', gpayLink);
-    $('#btn-app-phonepe').attr('href', phonepeLink);
-    $('#btn-app-paytm').attr('href', paytmLink);
 
     // Update active chip highlight
     $('.amount-chip').removeClass('active-chip');
-    if (isNaN(num) || num <= 0) {
+    if (!hasAmt) {
       $('.amount-chip[data-amount="0"]').addClass('active-chip');
     } else {
       $(`.amount-chip[data-amount="${num}"]`).addClass('active-chip');
     }
+  },
+
+  // ---- Payment App Chooser Modal ----
+  openPayModal(customAmt) {
+    const event = Data.getActiveEvent();
+    if (!event) return;
+    const upiPa = event.upiId || (event.upiNumber ? event.upiNumber + '@upi' : '');
+    if (!upiPa) {
+      toast('Payment details not configured for this event', 'warning');
+      return;
+    }
+
+    const inputVal = $('#pay-amount-input').val();
+    const parsedAmt = customAmt !== undefined ? customAmt : (parseInt(inputVal) || event.defaultAmount || 250);
+    const hasAmt = parsedAmt > 0;
+    const upiName = encodeURIComponent(event.upiName || 'Fund Collection');
+    const upiNote = encodeURIComponent(event.name);
+
+    const query = `pa=${encodeURIComponent(upiPa)}&pn=${upiName}${hasAmt ? `&am=${parsedAmt}` : ''}&cu=INR&tn=${upiNote}`;
+    const upiLink      = `upi://pay?${query}`;
+    const gpayLink     = `gpay://upi/pay?${query}`;
+    const phonepeLink  = `phonepe://pay?${query}`;
+    const paytmLink    = `paytmmp://pay?${query}`;
+    const whatsappLink = `whatsapp://pay?${query}`;
+
+    Modal.open(`
+      <div class="text-center mb-5">
+        <div class="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center mx-auto mb-2 text-blue-400 text-xl">
+          <i class="fas fa-wallet"></i>
+        </div>
+        <h3 class="text-lg font-black">Choose Payment App</h3>
+        <p class="text-xs text-gray-400 mt-1">
+          Paying <strong class="text-emerald-400 font-bold">${hasAmt ? formatCurrency(parsedAmt) : 'Custom Amount'}</strong> to <span class="text-white font-semibold">${escHtml(event.upiName || event.name)}</span>
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 mb-4">
+        <a href="${gpayLink}" onclick="Modal.close()" class="app-choice-card">
+          <img src="img/gpay.svg" width="36" height="36" alt="Google Pay" class="rounded-xl">
+          <div class="font-bold text-xs text-gray-200">Google Pay</div>
+          <span class="text-[9px] text-gray-500">Direct Pay</span>
+        </a>
+        <a href="${phonepeLink}" onclick="Modal.close()" class="app-choice-card">
+          <img src="img/phonepe.svg" width="36" height="36" alt="PhonePe" class="rounded-xl">
+          <div class="font-bold text-xs text-gray-200">PhonePe</div>
+          <span class="text-[9px] text-gray-500">Direct Pay</span>
+        </a>
+        <a href="${paytmLink}" onclick="Modal.close()" class="app-choice-card">
+          <img src="img/paytm.svg" width="36" height="36" alt="Paytm" class="rounded-xl">
+          <div class="font-bold text-xs text-gray-200">Paytm</div>
+          <span class="text-[9px] text-gray-500">Direct Pay</span>
+        </a>
+        <a href="${whatsappLink}" onclick="Modal.close()" class="app-choice-card">
+          <img src="img/whatsapp.svg" width="36" height="36" alt="WhatsApp Pay" class="rounded-xl">
+          <div class="font-bold text-xs text-gray-200">WhatsApp Pay</div>
+          <span class="text-[9px] text-gray-500">Direct Pay</span>
+        </a>
+      </div>
+
+      <a href="${upiLink}" onclick="Modal.close()"
+        class="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center gap-2 text-xs font-semibold text-gray-300 transition-all">
+        <i class="fas fa-ellipsis-h text-gray-400"></i>
+        Other UPI Apps (BHIM, CRED, Amazon Pay...)
+      </a>
+    `);
   },
 
   // ---- Auth ----
