@@ -324,10 +324,11 @@ $(document).on('click', '#modal-close', () => Modal.close());
 const Render = {
   all() {
     this.header();
+    this.publicView();
     if (AppState.isAdmin) {
       this.adminView();
     } else {
-      this.publicView();
+      $('#admin-view').addClass('hidden');
     }
   },
 
@@ -345,8 +346,8 @@ const Render = {
 
     // Admin button state
     if (AppState.isAdmin) {
-      $('#admin-btn-text').text('Exit');
-      $('#admin-btn-icon').attr('class', 'fas fa-door-open text-orange-400 text-[10px]');
+      $('#admin-btn-text').text('Logout');
+      $('#admin-btn-icon').attr('class', 'fas fa-sign-out-alt text-red-400 text-[10px]');
     } else {
       $('#admin-btn-text').text('Admin');
       $('#admin-btn-icon').attr('class', 'fas fa-shield-halved text-emerald-400 text-[10px]');
@@ -378,14 +379,17 @@ const Render = {
       <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
         <div class="hero-blob w-40 h-40 bg-emerald-500/8 top-[-40px] right-[-40px]"></div>
         <div class="hero-blob w-24 h-24 bg-blue-500/5 bottom-[-20px] left-[10%]"></div>
-        <div class="relative z-10">
-          <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.12em] mb-1.5">Active Fund</div>
-          <h2 class="text-2xl font-black leading-tight">${escHtml(event.name)}</h2>
-          ${event.defaultAmount ? `
-            <div class="mt-3 inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-1.5">
-              <i class="fas fa-tag text-emerald-400 text-xs"></i>
-              <span class="text-xs font-semibold text-emerald-300">${formatCurrency(event.defaultAmount)} per person</span>
-            </div>` : ''}
+        <div class="relative z-10 pr-16">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+              Active Fund
+            </span>
+          </div>
+          <h1 class="text-xl font-black tracking-tight leading-snug">${escHtml(event.name)}</h1>
+          <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+            <span><i class="fas fa-ticket text-emerald-400 mr-1"></i>${formatCurrency(event.defaultAmount || 250)} / person</span>
+            ${event.targetAmount ? `<span><i class="fas fa-bullseye text-blue-400 mr-1"></i>Target: ${formatCurrency(event.targetAmount)}</span>` : ''}
+          </div>
         </div>
         <div class="absolute top-4 right-5 text-right z-10">
           <div class="text-3xl font-black text-emerald-400 leading-none">${stats.percent}%</div>
@@ -404,11 +408,6 @@ const Render = {
       const upiNote = encodeURIComponent(event.name);
       const query   = `pa=${encodeURIComponent(upiPa)}&pn=${upiName}&am=${upiAmt}&cu=INR&tn=${upiNote}`;
       const upiLink = upiPa ? `upi://pay?${query}` : '';
-
-      // App-specific deep links (exact direct payment intent paths)
-      const gpayLink    = upiPa ? `gpay://upi/pay?${query}` : '';
-      const phonepeLink = upiPa ? `phonepe://pay?${query}` : '';
-      const paytmLink   = upiPa ? `paytmmp://pay?${query}` : '';
 
       const payCard = `
         <div class="glass-card rounded-2xl p-4 mt-4">
@@ -499,39 +498,35 @@ const Render = {
         <div class="text-[10px] text-gray-500 mt-1 font-medium">COLLECTED</div>
       </div>
       <div class="stat-card">
-        <div class="text-lg font-black text-white leading-tight">${stats.paid}</div>
-        <div class="text-[10px] text-gray-500 mt-1 font-medium">PAID ✅</div>
+        <div class="text-lg font-black text-blue-400 leading-tight">${stats.paid}<span class="text-xs text-gray-500 font-normal">/${stats.total}</span></div>
+        <div class="text-[10px] text-gray-500 mt-1 font-medium">PAID</div>
       </div>
       <div class="stat-card">
-        <div class="text-lg font-black text-orange-400 leading-tight">${stats.pending}</div>
-        <div class="text-[10px] text-gray-500 mt-1 font-medium">PENDING ⏳</div>
+        <div class="text-lg font-black ${stats.pending > 0 ? 'text-amber-400' : 'text-gray-500'} leading-tight">${stats.pending}</div>
+        <div class="text-[10px] text-gray-500 mt-1 font-medium">PENDING</div>
       </div>
     `);
 
-    // --- Progress ---
-    const safePercent = Math.max(0, Math.min(100, stats.percent));
+    // --- Progress Section ---
+    const safePercent = Math.min(100, Math.max(0, stats.percent));
     $('#progress-section').html(`
       <div class="glass-card rounded-2xl p-4">
-        <div class="flex items-center justify-between mb-2.5">
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Progress</span>
-          <span class="text-xs font-bold">
-            <span class="text-emerald-400">${formatCurrency(stats.totalCollected)}</span>
-            <span class="text-gray-600"> / ${formatCurrency(stats.totalExpected)}</span>
-          </span>
+        <div class="flex items-center justify-between text-xs mb-2">
+          <span class="font-semibold text-gray-300">Collection Progress</span>
+          <span class="font-black text-emerald-400">${stats.percent}% (${formatCurrency(stats.totalCollected)} / ${formatCurrency(event.targetAmount || 0)})</span>
         </div>
         <div class="progress-bar-track">
-          <div class="progress-bar-fill" id="prog-fill" style="width:0%"></div>
+          <div id="prog-fill" class="progress-bar-fill" style="width: 0%"></div>
         </div>
-        <div class="flex items-center justify-between mt-3">
+        <div class="flex items-center justify-between mt-2.5">
           <span class="text-[11px] text-gray-500">
-            <i class="fas fa-wifi text-blue-400 mr-1"></i>
+            <i class="fas fa-wifi text-emerald-400 mr-1"></i>
             Online: ${formatCurrency(stats.onlineTotal)}
           </span>
           <span class="text-[11px] text-gray-500">
             <i class="fas fa-money-bill text-yellow-400 mr-1"></i>
             Cash: ${formatCurrency(stats.cashTotal)}
           </span>
-          <span class="text-[11px] text-gray-500">${stats.paid}/${stats.total} members</span>
         </div>
       </div>
     `);
@@ -603,10 +598,27 @@ const Render = {
         ? `<div class="text-sm font-black ${amountColor}">${formatCurrency(m.amount)}</div>`
         : `<div class="text-xs text-gray-600 font-medium">${formatCurrency(event?.defaultAmount || 0)}</div>`;
 
+      const adminActions = AppState.isAdmin ? `
+        <div class="flex items-center gap-1 ml-2 flex-shrink-0" onclick="event.stopPropagation()">
+          <button onclick="App.toggleMemberPaid('${m.id}')" title="${m.paid ? 'Mark Pending' : 'Mark Paid'}"
+            class="w-7 h-7 rounded-lg flex items-center justify-center transition-all ${m.paid ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-white/10 text-gray-400 hover:text-white'}">
+            <i class="fas ${m.paid ? 'fa-check' : 'fa-circle'} text-[10px]"></i>
+          </button>
+          <button onclick="App.openEditMember('${m.id}')" title="Edit Member"
+            class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white flex items-center justify-center transition-all">
+            <i class="fas fa-pen text-[9px]"></i>
+          </button>
+          <button onclick="App.deleteMember('${m.id}')" title="Remove Member"
+            class="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-400 flex items-center justify-center transition-all">
+            <i class="fas fa-trash text-[9px]"></i>
+          </button>
+        </div>
+      ` : '';
+
       return `
         <div class="member-card ${m.paid ? 'paid' : 'pending'} ${extraClass}" style="animation-delay:${Math.min(i * 25, 400)}ms">
           ${rankBadge}
-          <div class="flex-1 min-w-0">
+          <div class="flex-1 min-w-0 ${AppState.isAdmin ? 'cursor-pointer' : ''}" onclick="${AppState.isAdmin ? `App.openEditMember('${m.id}')` : ''}">
             <div class="font-bold text-sm leading-snug">${escHtml(m.name)}</div>
             <div class="flex items-center gap-1.5 mt-1 flex-wrap">
               ${statusBadge}
@@ -616,6 +628,7 @@ const Render = {
           <div class="text-right flex-shrink-0">
             ${amountDisplay}
           </div>
+          ${adminActions}
         </div>
       `;
     }).join('');
@@ -624,10 +637,9 @@ const Render = {
   },
 
   adminView() {
-    $('#public-view').addClass('hidden');
     $('#admin-view').removeClass('hidden');
-    this.adminStats();
     this.eventsList();
+    this.adminStats();
     this.adminMemberList();
   },
 

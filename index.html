@@ -85,7 +85,90 @@
   <!-- ====== MAIN CONTENT ====== -->
   <main class="max-w-lg mx-auto px-4 pb-24">
 
-    <!-- ===== PUBLIC VIEW ===== -->
+    <!-- ===== ADMIN VIEW (Visible when logged in as Admin) ===== -->
+    <section id="admin-view" class="hidden">
+
+      <div class="mt-5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-sm">
+            <i class="fas fa-shield-halved"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-black leading-tight">Admin Management Hub</h2>
+            <p class="text-[10px] text-emerald-400/80 font-medium">Full edit &amp; manage access</p>
+          </div>
+        </div>
+        <button onclick="App.logout()" class="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-xl transition-all font-semibold">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+
+      <!-- Quick Admin Actions Grid -->
+      <div class="grid grid-cols-3 gap-2 mt-3 mb-2">
+        <button onclick="App.openAddMember()" class="btn-primary text-xs py-2.5 px-2 flex items-center justify-center gap-1.5 rounded-xl">
+          <i class="fas fa-user-plus text-xs"></i> Add Member
+        </button>
+        <button onclick="App.openBulkAdd()" class="btn-secondary text-xs py-2.5 px-2 flex items-center justify-center gap-1.5 rounded-xl">
+          <i class="fas fa-list text-xs"></i> Bulk Add
+        </button>
+        <button onclick="App.openAddEvent()" class="btn-secondary text-xs py-2.5 px-2 flex items-center justify-center gap-1.5 rounded-xl">
+          <i class="fas fa-plus text-xs"></i> New Event
+        </button>
+      </div>
+
+      <!-- Events List Card -->
+      <div class="mt-3 glass-card rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+            <i class="fas fa-calendar-alt text-emerald-400"></i>
+            Events Management
+          </h3>
+          <span class="text-[10px] text-emerald-400 font-medium">Tap to set Default ⭐</span>
+        </div>
+        <div id="events-list" class="flex flex-col gap-2"></div>
+      </div>
+
+      <!-- Settings & Backup -->
+      <div class="mt-3 mb-5 glass-card rounded-2xl p-4">
+        <h3 class="font-bold text-xs uppercase tracking-wider text-gray-400 flex items-center gap-1.5 mb-3">
+          <i class="fas fa-gear text-emerald-400"></i>
+          Settings &amp; Backup
+        </h3>
+        <div class="flex flex-col gap-2">
+          <button onclick="App.openChangePassword()" class="settings-row py-2">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-key text-yellow-400 w-4 text-center"></i>
+              <span class="text-xs">Change Admin Password</span>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
+          </button>
+          <button onclick="App.exportData()" class="settings-row py-2">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-download text-blue-400 w-4 text-center"></i>
+              <span class="text-xs">Export Backup (JSON)</span>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
+          </button>
+          <label class="settings-row py-2 cursor-pointer">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-upload text-purple-400 w-4 text-center"></i>
+              <span class="text-xs">Import Backup (JSON)</span>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
+            <input type="file" accept=".json" id="import-file" class="hidden" onchange="App.importData(event)">
+          </label>
+          <button onclick="App.openClearData()" class="settings-row py-2">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-trash-alt text-red-400 w-4 text-center"></i>
+              <span class="text-xs text-red-400">Clear All Data</span>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PUBLIC LIVE VIEW ===== -->
     <section id="public-view">
       <div id="event-hero" class="mt-5"></div>
       <div id="stats-row" class="mt-4 grid grid-cols-3 gap-3"></div>
@@ -93,7 +176,7 @@
 
       <div class="mt-5">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Members</h2>
+          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Members &amp; Rankings</h2>
           <div class="flex gap-1.5">
             <button id="filter-all"     onclick="App.setFilter('all')"     class="filter-pill active">All</button>
             <button id="filter-paid"    onclick="App.setFilter('paid')"    class="filter-pill">Paid</button>
@@ -123,99 +206,6 @@
         <button onclick="App.toggleAdmin()" class="btn-primary px-6 py-2.5 text-sm">
           <i class="fas fa-lock-open mr-2"></i>Go to Admin
         </button>
-      </div>
-    </section>
-
-    <!-- ===== ADMIN VIEW ===== -->
-    <section id="admin-view" class="hidden">
-
-      <div class="mt-5 flex items-center justify-between">
-        <div>
-          <h2 class="text-xl font-black">Admin Panel</h2>
-          <p class="text-xs text-gray-500 mt-0.5">Manage events &amp; members</p>
-        </div>
-        <button onclick="App.logout()" class="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-2 rounded-xl transition-all">
-          <i class="fas fa-sign-out-alt"></i> Logout
-        </button>
-      </div>
-
-      <div id="admin-stats" class="mt-4"></div>
-
-      <div class="mt-5 glass-card rounded-2xl p-4">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-bold text-sm flex items-center gap-2">
-            <span class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-              <i class="fas fa-calendar-alt text-emerald-400 text-xs"></i>
-            </span>
-            Fund Events
-          </h3>
-          <button onclick="App.openAddEvent()" class="btn-primary text-xs px-3 py-1.5">
-            <i class="fas fa-plus mr-1"></i> New Event
-          </button>
-        </div>
-        <div id="events-list" class="flex flex-col gap-2"></div>
-      </div>
-
-      <div id="admin-members-section" class="mt-5 hidden">
-        <div class="glass-card rounded-2xl p-4">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="font-bold text-sm flex items-center gap-2">
-              <span class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                <i class="fas fa-users text-emerald-400 text-xs"></i>
-              </span>
-              Members <span id="admin-members-count" class="text-gray-500 font-normal text-xs"></span>
-            </h3>
-            <div class="flex gap-2">
-              <button onclick="App.openBulkAdd()" class="btn-secondary text-xs px-3 py-1.5">
-                <i class="fas fa-list mr-1"></i> Bulk
-              </button>
-              <button onclick="App.openAddMember()" class="btn-primary text-xs px-3 py-1.5">
-                <i class="fas fa-user-plus mr-1"></i> Add
-              </button>
-            </div>
-          </div>
-          <div id="admin-member-list" class="flex flex-col gap-2"></div>
-        </div>
-      </div>
-
-      <div class="mt-5 glass-card rounded-2xl p-4">
-        <h3 class="font-bold text-sm flex items-center gap-2 mb-4">
-          <span class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-            <i class="fas fa-gear text-emerald-400 text-xs"></i>
-          </span>
-          Settings &amp; Data
-        </h3>
-        <div class="flex flex-col gap-2">
-          <button onclick="App.openChangePassword()" class="settings-row">
-            <div class="flex items-center gap-3">
-              <i class="fas fa-key text-yellow-400 w-4 text-center"></i>
-              <span class="text-sm">Change Admin Password</span>
-            </div>
-            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
-          </button>
-          <button onclick="App.exportData()" class="settings-row">
-            <div class="flex items-center gap-3">
-              <i class="fas fa-download text-blue-400 w-4 text-center"></i>
-              <span class="text-sm">Export Backup (JSON)</span>
-            </div>
-            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
-          </button>
-          <label class="settings-row cursor-pointer">
-            <div class="flex items-center gap-3">
-              <i class="fas fa-upload text-purple-400 w-4 text-center"></i>
-              <span class="text-sm">Import Backup (JSON)</span>
-            </div>
-            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
-            <input type="file" accept=".json" id="import-file" class="hidden" onchange="App.importData(event)">
-          </label>
-          <button onclick="App.openClearData()" class="settings-row">
-            <div class="flex items-center gap-3">
-              <i class="fas fa-trash-alt text-red-400 w-4 text-center"></i>
-              <span class="text-sm text-red-400">Clear All Data</span>
-            </div>
-            <i class="fas fa-chevron-right text-gray-600 text-xs"></i>
-          </button>
-        </div>
       </div>
     </section>
 
