@@ -394,16 +394,10 @@ const Render = {
       const query   = `pa=${encodeURIComponent(upiPa)}&pn=${upiName}&am=${upiAmt}&cu=INR&tn=${upiNote}`;
       const upiLink = upiPa ? `upi://pay?${query}` : '';
 
-      // App-specific deep links (exact payment intent paths with iOS/Android compatibility)
-      const isAndroid      = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent || '');
-      const gpayLink       = upiPa ? `gpay://upi/pay?${query}` : '';
-      const phonepeLink    = upiPa ? `phonepe://pay?${query}` : '';
-      const paytmLink      = upiPa ? `paytmmp://pay?${query}` : '';
-      const supermoneyLink = upiPa
-        ? (isAndroid
-            ? `intent://pay?${query}#Intent;scheme=upi;package=money.super.payments;end`
-            : `upi://pay?${query}`)
-        : '';
+      // App-specific deep links (exact direct payment intent paths)
+      const gpayLink    = upiPa ? `gpay://upi/pay?${query}` : '';
+      const phonepeLink = upiPa ? `phonepe://pay?${query}` : '';
+      const paytmLink   = upiPa ? `paytmmp://pay?${query}` : '';
 
       const payCard = `
         <div class="glass-card rounded-2xl p-4 mt-4">
@@ -478,23 +472,19 @@ const Render = {
             <span id="btn-pay-now-text" class="font-black text-base">Pay ${formatCurrency(upiAmt)} Now</span>
           </a>
 
-          <!-- App Shortcuts (2x2 grid) -->
-          <div class="grid grid-cols-2 gap-2">
-            <a href="${gpayLink}" id="btn-app-gpay" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
+          <!-- App Shortcuts (3-column layout) -->
+          <div class="grid grid-cols-3 gap-2">
+            <a href="${gpayLink}" id="btn-app-gpay" class="upi-app-btn flex flex-col items-center gap-1.5 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all text-center">
               <img src="img/gpay.svg" width="28" height="28" alt="Google Pay" class="rounded-lg">
-              <span class="text-[12px] font-semibold text-gray-200">GPay</span>
+              <span class="text-[11px] font-semibold text-gray-200">GPay</span>
             </a>
-            <a href="${phonepeLink}" id="btn-app-phonepe" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
+            <a href="${phonepeLink}" id="btn-app-phonepe" class="upi-app-btn flex flex-col items-center gap-1.5 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all text-center">
               <img src="img/phonepe.svg" width="28" height="28" alt="PhonePe" class="rounded-lg">
-              <span class="text-[12px] font-semibold text-gray-200">PhonePe</span>
+              <span class="text-[11px] font-semibold text-gray-200">PhonePe</span>
             </a>
-            <a href="${paytmLink}" id="btn-app-paytm" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
+            <a href="${paytmLink}" id="btn-app-paytm" class="upi-app-btn flex flex-col items-center gap-1.5 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all text-center">
               <img src="img/paytm.svg" width="28" height="28" alt="Paytm" class="rounded-lg">
-              <span class="text-[12px] font-semibold text-gray-200">Paytm</span>
-            </a>
-            <a href="${supermoneyLink}" id="btn-app-supermoney" class="upi-app-btn flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 transition-all">
-              <img src="img/supermoney.svg" width="28" height="28" alt="SuperMoney" class="rounded-lg">
-              <span class="text-[12px] font-semibold text-gray-200">SuperMoney</span>
+              <span class="text-[11px] font-semibold text-gray-200">Paytm</span>
             </a>
           </div>
           <p class="text-[10px] text-gray-600 text-center mt-2.5">
@@ -850,21 +840,16 @@ const App = {
     }
 
     const query = `pa=${encodeURIComponent(upiPa)}&pn=${upiName}${hasAmt ? `&am=${num}` : ''}&cu=INR&tn=${upiNote}`;
-    const isAndroid      = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent || '');
-    const upiLink        = `upi://pay?${query}`;
-    const gpayLink       = `gpay://upi/pay?${query}`;
-    const phonepeLink    = `phonepe://pay?${query}`;
-    const paytmLink      = `paytmmp://pay?${query}`;
-    const supermoneyLink = isAndroid
-      ? `intent://pay?${query}#Intent;scheme=upi;package=money.super.payments;end`
-      : `upi://pay?${query}`;
+    const upiLink     = `upi://pay?${query}`;
+    const gpayLink    = `gpay://upi/pay?${query}`;
+    const phonepeLink = `phonepe://pay?${query}`;
+    const paytmLink   = `paytmmp://pay?${query}`;
 
     $('#btn-pay-now').attr('href', upiLink);
     $('#btn-pay-now-text').text(buttonText);
     $('#btn-app-gpay').attr('href', gpayLink);
     $('#btn-app-phonepe').attr('href', phonepeLink);
     $('#btn-app-paytm').attr('href', paytmLink);
-    $('#btn-app-supermoney').attr('href', supermoneyLink);
 
     // Update active chip highlight
     $('.amount-chip').removeClass('active-chip');
